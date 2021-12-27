@@ -1,8 +1,9 @@
 ﻿using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 using Acme.BookStore.Localization;
 using Acme.BookStore.MultiTenancy;
-using Volo.Abp.Identity.Web.Navigation;
-using Volo.Abp.SettingManagement.Web.Navigation;
+using Acme.BookStore.Permissions;
 using Volo.Abp.TenantManagement.Web.Navigation;
 using Volo.Abp.UI.Navigation;
 
@@ -20,46 +21,33 @@ namespace Acme.BookStore.Web.Menus
 
         private async Task ConfigureMainMenuAsync(MenuConfigurationContext context)
         {
-            var administration = context.Menu.GetAdministration();
-            var l = context.GetLocalizer<BookStoreResource>();
-
-            context.Menu.Items.Insert(
-                0,
-                new ApplicationMenuItem(
-                    BookStoreMenus.Home,
-                    l["Menu:Home"],
-                    "~/",
-                    icon: "fas fa-home",
-                    order: 0
-                )
-            );
-            
-            if (MultiTenancyConsts.IsEnabled)
+            if (!MultiTenancyConsts.IsEnabled)
             {
-                administration.SetSubItemOrder(TenantManagementMenuNames.GroupName, 1);
-            }
-            else
-            {
+                var administration = context.Menu.GetAdministration();
                 administration.TryRemoveMenuItem(TenantManagementMenuNames.GroupName);
             }
 
-            administration.SetSubItemOrder(IdentityMenuNames.GroupName, 2);
-            administration.SetSubItemOrder(SettingManagementMenuNames.GroupName, 3);
+            var l = context.GetLocalizer<BookStoreResource>();
 
-            context.Menu.AddItem(
-                new ApplicationMenuItem(
-                    "BooksStore",
-                    l["Menu:BookStore"],
-                    icon: "fa fa-book"
-                ).AddItem(
-                    new ApplicationMenuItem(
-                        "BooksStore.Books",
-                        l["Menu:Books"],
-                        url: "/Books"
-                    )
-                )
+            context.Menu.Items.Insert(0, new ApplicationMenuItem("BookStore.Home", l["Menu:Home"], "~/"));
+
+            var bookStoreMenu = new ApplicationMenuItem(
+                "BooksStore",
+                l["Menu:BookStore"],
+                icon: "fa fa-book"
             );
 
+            context.Menu.AddItem(bookStoreMenu);
+
+            //CHECK the PERMISSION
+            if (await context.IsGrantedAsync(BookStorePermissions.Books.Default))
+            {
+                bookStoreMenu.AddItem(new ApplicationMenuItem(
+                    "BooksStore.Books",
+                    l["Menu:Books"],
+                    url: "/Books"
+                ));
+            }
         }
     }
 }
