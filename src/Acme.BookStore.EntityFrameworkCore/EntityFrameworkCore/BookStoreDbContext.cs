@@ -1,4 +1,5 @@
-﻿using Acme.BookStore.Books;
+﻿using Acme.BookStore.Authors;
+using Acme.BookStore.Books;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.AuditLogging.EntityFrameworkCore;
 using Volo.Abp.BackgroundJobs.EntityFrameworkCore;
@@ -26,6 +27,8 @@ namespace Acme.BookStore.EntityFrameworkCore
         ITenantManagementDbContext
     {
         /* Add DbSet properties for your Aggregate Roots / Entities here. */
+        public DbSet<Author> Authors { get; set; }
+
         public DbSet<Book> Books { get; set; }
 
         #region Entities from the modules
@@ -77,6 +80,20 @@ namespace Acme.BookStore.EntityFrameworkCore
             builder.ConfigureTenantManagement();
 
             /* Configure your own tables/entities inside here */
+            builder.Entity<Author>(b =>
+            {
+                b.ToTable(BookStoreConsts.DbTablePrefix + "Authors",
+                    BookStoreConsts.DbSchema);
+
+                b.ConfigureByConvention();
+
+                b.Property(x => x.Name)
+                    .IsRequired()
+                    .HasMaxLength(AuthorConsts.MaxNameLength);
+
+                b.HasIndex(x => x.Name);
+            });
+
 
             builder.Entity<Book>(b =>
             {
